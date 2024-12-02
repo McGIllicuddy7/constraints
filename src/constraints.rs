@@ -231,9 +231,6 @@ impl ConstraintSolver{
     }
 
     pub fn allowed_states_at(&self,x:usize, y:usize)->Vec<i16>{
-        if let Some(cache) =  self.allowed_neighbors_cache.get(&(x,y)){
-            return cache.clone();
-        }
         let mut out = vec![];
         for i in &self.constraints{
             let mut tmp = i.get_allowed_states(&self.grid, &self.allowed_states, x, y);
@@ -418,7 +415,7 @@ pub fn test_collapse(){
     let mut data =Vec::new();
     for i in 0..height{
         for j in 0..width{
-            data.push((thread_rng().next_u32()%3) as i16);
+            data.push(((i%2+j%3)) as i16);
         }
     }
     let mut solve=
