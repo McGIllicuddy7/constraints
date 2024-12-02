@@ -190,12 +190,36 @@ impl ConstraintSolver{
         *(self.grid.get_sqmut(x, y)) = value;
         self.allowed_neighbors_cache.clear();
     }
-    pub unsafe fn collapse_unchecked_recursive(&mut self, x:usize, y:usize, value:i16){
+
+    //returns true on error
+    pub unsafe fn collapse_unchecked_recursive(&mut self, x:usize, y:usize, value:i16)->bool{
         *(self.grid.get_sqmut(x, y)) = value;
+        let ix = x as isize;
+        let iy = y as isize;
         for i in 0..8{
             let dx = OFFSETS[i].0;
             let dy = OFFSETS[i].1;
+            let sx = ix+dx;
+            let sy = iy+dy;
+            if sx< 0 || sy<0 || sx>= self.grid.width as isize || sy >= self.grid.height as isize{
+                continue;
+            }
+            let vx = sx as usize;
+            let vy = sy as usize;
+            if *(self.grid.get_sq(vx, vy)) != -1{
+                continue;
+            }
+            let allowed = self.allowed_states_at(vx, vy);
+            if allowed.len() == 1{
+                let result = self.collapse_unchecked_recursive(vx, vy, allowed[0]);
+                if result{
+                    return true;
+                }
+            } else if allowed.len() == 0{
+                return true;
+            }
         } 
+        return false;
     }
     pub fn check_collapse_allowed(&self, x:usize, y:usize, test_value:i16)->bool{
         for i in &self.constraints{
@@ -235,7 +259,7 @@ impl ConstraintSolver{
                         return true;
                     }
                     if al.len() == 1{
-                        unsafe{self.collapse_unchecked(x, y, al[0]);}
+                        unsafe{self.collapse_unchecked_recursive(x, y, al[0]);}
                         reset = true;
                     }
                 }
@@ -247,10 +271,10 @@ impl ConstraintSolver{
     //returns Ok(true) if the collapse was allowed Ok(false) if collapsing reached an unreachable state returns an error
     pub fn attempt_collapse_to_value(&mut self,x:usize, y:usize, value:i16)->Result<bool,()>{
         if self.check_collapse_allowed(x, y, value){
-            unsafe{
-                self.collapse_unchecked(x, y, value);
-            }
-            let result = self.collapse_all_determined();
+         
+            let result =    unsafe{
+                self.collapse_unchecked_recursive(x,y,value)
+            };
             if result {
                 Err(())
             } else{
@@ -289,14 +313,10 @@ impl ConstraintSolver{
                 todo!()
             }
         };
-        unsafe {
-            self.collapse_unchecked(x, y, state);
-        }
-        let result = self.collapse_all_determined();
+        let result = unsafe {
+            self.collapse_unchecked_recursive(x, y, state)
+        };
         if result{
-            return Err(());
-        }
-        if !self.is_state_valid(){
             return Err(());
         }
         return Ok(true);
