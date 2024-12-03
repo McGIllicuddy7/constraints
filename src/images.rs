@@ -1,6 +1,9 @@
 
-pub use raylib::prelude::Image;
 pub use raylib::prelude::Color;
+pub use raylib::prelude::Image;
+use raylib::shaders::RaylibShader;
+use core::ffi::c_void;
+use raylib::texture::RaylibTexture2D;
 use std::ops::Index;
 use std::ops::IndexMut;
 use std::sync::Arc;
@@ -99,7 +102,7 @@ impl ByteImage{
     fn kernel_blur(&self,x:usize, y:usize,kernel_size:usize, exp_divisor:f64)->Color{
         let ks = kernel_size as isize;
         let mut total_mlt = 0.0;
-        let mut col:[f64; 4] = [0.0, 0.0, 0.0, 0.0];
+        let mut col = [0.0, 0.0, 0.0, 0.0];
         for dy in -ks..ks{
             for dx in -ks..ks{
                 let ix = x as isize + dx;
@@ -174,6 +177,54 @@ impl ByteImage{
         }
         return Self::new_from_color(&outbuffer, self.height, self.width);
        
+    }
+    pub fn blur_shader(&self, thread:&raylib::prelude::RaylibThread, handle:&mut raylib::prelude::RaylibHandle, kernel_size:usize, divisor:f64)->Result<Self, String>{
+        static VS_CODE:&str = core::include_str!("shaders/blur.vs");
+        static FS_CODE:&str = core::include_str!("shaders/blur.fs");
+        let img = self.to_image();
+        let tex = handle.load_texture_from_image(thread, &img)?;
+        let render_tex = handle.load_render_texture(thread, self.width as u32, self.height as u32)?;
+        
+        let shader = handle.load_shader_from_memory(thread, Some(VS_CODE), Some(FS_CODE));
+        let kern_sz_idx = shader.get_shader_location("kernal_size");
+        let div_idx =shader.get_shader_location("divisor"); 
+        let texture_height_idx =
+        shader.get_shader_location("texture_height"); 
+        let texture_width_idx =
+        shader.get_shader_location("texture_width"); 
+        {
+            unsafe{
+                use raylib::ffi::*;
+                BeginTextureMode(*render_tex);
+                BeginShaderMode(*shader);
+                let kern_sz:i32 = kernel_size as i32;
+                rlSetUniform(kern_sz_idx,  & kern_sz as *const core::ffi::c_int as *const c_void,ShaderUniformDataType::SHADER_UNIFORM_INT as i32, 1);
+                let div:f32 = divisor as f32;
+                rlSetUniform(div_idx,  & div as *const core::ffi::c_float as *const c_void,ShaderUniformDataType::SHADER_UNIFORM_FLOAT as i32, 1);
+                let tex_height = self.height as f32;
+                rlSetUniform(texture_height_idx,  & tex_height as *const core::ffi::c_float as *const c_void,ShaderUniformDataType::SHADER_UNIFORM_FLOAT as i32, 1);
+                let tex_width = self.width as f32;
+                rlSetUniform(texture_width_idx,  & tex_width as *const core::ffi::c_float as *const c_void,ShaderUniformDataType::SHADER_UNIFORM_FLOAT as i32, 1); 
+                rlSetTexture(tex.id);
+                rlBegin(raylib::ffi::RL_QUADS as i32);
+                rlColor4f(1.0, 1.0, 1.0, 1.0);
+
+                rlTexCoord2f(0.0, 0.0);
+                rlVertex2f(0.0, 0.0);
+                rlTexCoord2f(1.0, 0.0);
+                rlVertex2f(0.0, self.height as f32);
+                rlTexCoord2f(1.0, 1.0);
+                rlVertex2f(self.width as f32, self.height as f32);
+                rlTexCoord2f(0.0, 1.0);
+                rlVertex2f(self.width as f32,0.0);
+    
+                raylib::ffi::rlEnd();
+                EndTextureMode();
+            }
+        }
+        let mut img = render_tex.load_image()?;
+        img.rotate(90);
+        return Ok(Self::new(&mut img));
     }
 }
 

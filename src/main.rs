@@ -13,9 +13,17 @@ fn blur_sim(){
     let blurred = img.blur(15,5000.0);
     blurred.export("blurred.png");
 }
+#[allow(unused)]
+fn blur_fast(){
+    let (mut handle,mut thread) = raylib::prelude::init().size(1000, 1000).title("hello window").log_level(raylib::prelude::TraceLogLevel::LOG_DEBUG).build();
+    let img = images::ByteImage::new_from_file("image.png").expect("i know you exist");
+    let blurred = img.blur_shader(&thread, &mut handle, 10, 500.0).expect("msg");
+    blurred.export("blurred.png");
+
+}
 fn main() {
     let now = SystemTime::now();
-    blur_sim();
+    blur_fast();
     match now.elapsed() {
         Ok(elapsed) => {
             // it prints '2'
