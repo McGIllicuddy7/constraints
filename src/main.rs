@@ -17,7 +17,7 @@ fn blur_sim(){
 fn blur_fast(){
     let (mut handle,mut thread) = raylib::prelude::init().size(1000, 1000).title("hello window").log_level(raylib::prelude::TraceLogLevel::LOG_DEBUG).build();
     let img = images::ByteImage::new_from_file("image.png").expect("i know you exist");
-    let blurred = img.blur_shader(&thread, &mut handle, 10, 500.0).expect("msg");
+    let blurred = img.blur_shader(&thread, &mut handle, 100, 500.0).expect("msg");
     blurred.export("blurred.png");
 
 }

@@ -2,6 +2,7 @@
 pub use raylib::prelude::Color;
 pub use raylib::prelude::Image;
 use raylib::shaders::RaylibShader;
+use raylib::shaders::ShaderV;
 use core::ffi::c_void;
 use raylib::texture::RaylibTexture2D;
 use std::ops::Index;
@@ -185,30 +186,19 @@ impl ByteImage{
         let tex = handle.load_texture_from_image(thread, &img)?;
         let render_tex = handle.load_render_texture(thread, self.width as u32, self.height as u32)?;
         
-        let shader = handle.load_shader_from_memory(thread, Some(VS_CODE), Some(FS_CODE));
-        let kern_sz_idx = shader.get_shader_location("kernal_size");
-        let div_idx =shader.get_shader_location("divisor"); 
-        let texture_height_idx =
-        shader.get_shader_location("texture_height"); 
-        let texture_width_idx =
-        shader.get_shader_location("texture_width"); 
+        let mut shader = handle.load_shader_from_memory(thread, Some(VS_CODE), Some(FS_CODE)); 
+        shader.set_shader_value_v(shader.get_shader_location("height"), &[self.height as i32]);
+        shader.set_shader_value_v(shader.get_shader_location("width"), &[self.width as i32]);
+        shader.set_shader_value_v(shader.get_shader_location("kernel_size"), &[kernel_size as i32]);
+        shader.set_shader_value_v(shader.get_shader_location("divisor"), &[divisor as i32]);
         {
             unsafe{
                 use raylib::ffi::*;
                 BeginTextureMode(*render_tex);
                 BeginShaderMode(*shader);
-                let kern_sz:i32 = kernel_size as i32;
-                rlSetUniform(kern_sz_idx,  & kern_sz as *const core::ffi::c_int as *const c_void,ShaderUniformDataType::SHADER_UNIFORM_INT as i32, 1);
-                let div:f32 = divisor as f32;
-                rlSetUniform(div_idx,  & div as *const core::ffi::c_float as *const c_void,ShaderUniformDataType::SHADER_UNIFORM_FLOAT as i32, 1);
-                let tex_height = self.height as f32;
-                rlSetUniform(texture_height_idx,  & tex_height as *const core::ffi::c_float as *const c_void,ShaderUniformDataType::SHADER_UNIFORM_FLOAT as i32, 1);
-                let tex_width = self.width as f32;
-                rlSetUniform(texture_width_idx,  & tex_width as *const core::ffi::c_float as *const c_void,ShaderUniformDataType::SHADER_UNIFORM_FLOAT as i32, 1); 
                 rlSetTexture(tex.id);
                 rlBegin(raylib::ffi::RL_QUADS as i32);
                 rlColor4f(1.0, 1.0, 1.0, 1.0);
-
                 rlTexCoord2f(0.0, 0.0);
                 rlVertex2f(0.0, 0.0);
                 rlTexCoord2f(1.0, 0.0);
