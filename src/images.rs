@@ -214,6 +214,46 @@ impl ByteImage{
         img.rotate(90);
         return Ok(Self::new(&mut img));
     }
+    pub fn guass_diff_shader_explicit(&self, thread:&raylib::prelude::RaylibThread, handle:&mut raylib::prelude::RaylibHandle, kernel_size0:usize, divisor0:f64, kernel_size1:usize, divisor1:f64, b_and_w:bool)->Result<Self, String>{
+        static VS_CODE:&str = core::include_str!("shaders/blur.vs");
+        static FS_CODE:&str = core::include_str!("shaders/diff.fs");
+        let img = self.to_image();
+        let tex = handle.load_texture_from_image(thread, &img)?;
+        let render_tex = handle.load_render_texture(thread, self.width as u32, self.height as u32)?;
+        
+        let mut shader = handle.load_shader_from_memory(thread, Some(VS_CODE), Some(FS_CODE)); 
+        shader.set_shader_value_v(shader.get_shader_location("height"), &[self.height as i32]);
+        shader.set_shader_value_v(shader.get_shader_location("width"), &[self.width as i32]);
+        shader.set_shader_value_v(shader.get_shader_location("kernel_size0"), &[kernel_size0 as i32]);
+        shader.set_shader_value_v(shader.get_shader_location("divisor0"), &[divisor0 as i32]);
+        shader.set_shader_value_v(shader.get_shader_location("kernel_size1"), &[kernel_size1 as i32]);
+        shader.set_shader_value_v(shader.get_shader_location("divisor1"), &[divisor1 as i32]);
+        shader.set_shader_value_v(shader.get_shader_location("b_and_w"), &[b_and_w as i32]);
+        {
+            unsafe{
+                use raylib::ffi::*;
+                BeginTextureMode(*render_tex);
+                BeginShaderMode(*shader);
+                rlSetTexture(tex.id);
+                rlBegin(raylib::ffi::RL_QUADS as i32);
+                rlColor4f(1.0, 1.0, 1.0, 1.0);
+                rlTexCoord2f(0.0, 0.0);
+                rlVertex2f(0.0, 0.0);
+                rlTexCoord2f(1.0, 0.0);
+                rlVertex2f(0.0, self.height as f32);
+                rlTexCoord2f(1.0, 1.0);
+                rlVertex2f(self.width as f32, self.height as f32);
+                rlTexCoord2f(0.0, 1.0);
+                rlVertex2f(self.width as f32,0.0);
+    
+                raylib::ffi::rlEnd();
+                EndTextureMode();
+            }
+        }
+        let mut img = render_tex.load_image()?;
+        img.rotate(90);
+        return Ok(Self::new(&mut img));
+    }
 }
 
 #[allow(unused)]
