@@ -31,12 +31,5 @@ void main()
         }
     }
     texelColor/= total;
-/*
-    for (int i = 1; i < 3; i++)
-    {
-        texelColor += texture(texture0, fragTexCoord + vec2(offset[i])/renderWidth, 0.0).rgb*weight[i];
-        texelColor += texture(texture0, fragTexCoord - vec2(offset[i])/renderWidth, 0.0).rgb*weight[i];
-    }
-*/
     finalColor = vec4(texelColor, 1.0);
 }

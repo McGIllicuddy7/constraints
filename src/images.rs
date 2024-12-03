@@ -2,8 +2,6 @@
 pub use raylib::prelude::Color;
 pub use raylib::prelude::Image;
 use raylib::shaders::RaylibShader;
-use raylib::shaders::ShaderV;
-use core::ffi::c_void;
 use raylib::texture::RaylibTexture2D;
 use std::ops::Index;
 use std::ops::IndexMut;
