@@ -33,7 +33,7 @@ vec3 guassian(int kernel_size, int divisor){
     }
     texelColor/= total;
     if(b_and_w){
-        texelColor = vec3(texelColor.r*texelColor.r+texelColor.g*texelColor.g+texelColor.b*texelColor.b);
+        texelColor = vec3(sqrt(texelColor.r*texelColor.r+texelColor.g*texelColor.g+texelColor.b*texelColor.b));
     }
     return texelColor;
 }
