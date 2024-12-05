@@ -47,7 +47,9 @@ fn diff_fast(){
 #[allow(unused)]
 fn diff(){
     let img = images::ByteImage::new_from_file("image.png").expect("i know you exist");
-    let blurred = img.guass_diff(6,6.0, 10, 10.0);
+    let edges = img.guass_diff(10,2.0, 20, 4.0);
+    edges.export("edges.png");
+    let blurred = edges.blur(10, 20.0);
     blurred.export("blurred.png");
 }
 

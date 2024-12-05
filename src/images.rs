@@ -61,8 +61,6 @@ impl ByteImage{
                 img.draw_pixel(x as i32, y as i32, self[y][x]);
             }
         }
-        img.rotate(90);
-        img.flip_horizontal();
         return img;
     }
 
@@ -113,7 +111,7 @@ impl ByteImage{
                 let vy = iy as usize;
                 let scaler = (-((dx*dx+dy*dy) as f64)/exp_divisor).exp();
                 total_mlt += scaler;
-                let c = self[vx][vy];
+                let c = self[vy][vx];
                 col[0] += (c.r as f64)*scaler;
                 col[1] += (c.g as f64)*scaler;
                 col[2] += (c.b as f64)*scaler;
@@ -319,9 +317,40 @@ impl ByteImage{
         return Ok(Self::new(&mut img));
     }
 
+    pub fn does_it_rotate(&self)->Self{
+        let mut out = self.clone();
+        for y in 0..self.height{
+            for x in 0..self.width{
+                out[y][x] = self[y][x];
+            }
+        }
+        return out;
+    }
+}
+
+//this function is useless don't use it unless you feel like using a useless function.
+#[allow(unused)]
+pub fn byte_image_dot_product(a:&ByteImage, b:&ByteImage)->f64{
+    let mut out = 0.0;
+    for y in 0..a.height{
+        for x in 0..a.width{
+            out += (a[y][x].r as f64)*(b[y][x].r as f64)/(256.0*256.0);
+            out += (a[y][x].g as f64)*(b[y][x].g as f64)/(256.0*256.0);
+            out += (a[y][x].b as f64)*(b[y][x].b as f64)/(256.0*256.0);
+        }
+    }
+    return out/(3.0*a.height as f64*b.height as f64);
 }
 
 #[allow(unused)]
-pub fn compare_byte_images(a:&ByteImage, b:&ByteImage)->f64{
-    return 0.0;
+pub fn byte_image_comparision(a:&ByteImage, b:&ByteImage)->f64{
+    let kernel_size1 = 10;
+    let exp_divisor1 = 2.0;
+    let kernel_size2 = 20;
+    let exp_divisor2 = 4.0;
+    let a_edges = a.guass_diff( kernel_size1, exp_divisor1, kernel_size2, exp_divisor2);
+    let b_edges = b.guass_diff( kernel_size1, exp_divisor1, kernel_size2, exp_divisor2);
+    let a_blur = a_edges.blur(10, 40.0);
+    let b_blur = b_edges.blur(10, 40.0); 
+    return byte_image_dot_product(&a_blur, &b_blur);
 }
