@@ -1,7 +1,10 @@
 pub mod constraints;
 mod utils;
 pub mod images;
-use std::time::SystemTime;
+#[allow(unused)]
+use std::{thread::sleep, time::{Duration, SystemTime}};
+#[allow(unused)]
+use raylib::{color::Color, prelude::RaylibDraw, RaylibHandle, RaylibThread};
 #[allow(unused)]
 fn collapse_sim(){
     constraints::test_collapse();
@@ -16,22 +19,41 @@ fn blur_sim(){
 
 #[allow(unused)]
 fn blur_fast(){
-    let (mut handle,mut thread) = raylib::prelude::init().size(1000, 1000).title("hello window").log_level(raylib::prelude::TraceLogLevel::LOG_DEBUG).build();
+    let (mut handle,mut thread) = raylib::prelude::init().size(1000, 1000).title("hello window").log_level(raylib::prelude::TraceLogLevel::LOG_ALL).build();
     let img = images::ByteImage::new_from_file("image.png").expect("i know you exist");
     let blurred = img.blur_shader(&thread, &mut handle, 100, 50.0).expect("msg");
     blurred.export("blurred.png");
 }
 
+
+
+
 #[allow(unused)]
-fn diff_fast(){
+fn cell_fast(){
     let (mut handle,mut thread) = raylib::prelude::init().size(1000, 1000).title("hello window").log_level(raylib::prelude::TraceLogLevel::LOG_DEBUG).build();
     let img = images::ByteImage::new_from_file("image.png").expect("i know you exist");
-    let blurred = img.guass_diff_shader_explicit(&thread, &mut handle, 6, 6.0, 10, 10.0,true).expect("msg");
+    let blurred = img.cell_shader(&thread, &mut handle, 6, 6.0).expect("msg");
+    blurred.export("cell.png");
+}
+
+#[allow(unused)]
+fn diff_fast(){
+    let (mut handle,mut thread) = raylib::prelude::init().size(1000, 1000).title("hello window").log_level(raylib::prelude::TraceLogLevel::LOG_ERROR).build();
+    let img = images::ByteImage::new_from_file("image.png").expect("i know you exist");
+    let blurred = img.guass_diff_shader(&thread, &mut handle, 6, 6.0, 10, 10.0,false).expect("msg");
     blurred.export("blurred.png");
 }
+
+#[allow(unused)]
+fn diff(){
+    let img = images::ByteImage::new_from_file("image.png").expect("i know you exist");
+    let blurred = img.guass_diff(6,6.0, 10, 10.0);
+    blurred.export("blurred.png");
+}
+
 fn main() {
     let now = SystemTime::now();
-    diff_fast();
+    diff();
     match now.elapsed() {
         Ok(elapsed) => {
             // it prints '2'

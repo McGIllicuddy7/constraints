@@ -153,7 +153,6 @@ impl ByteImage{
         if self.height<nt{
             return self.blur_single_threaded(kernel_size, exp_divisor);
         }
-        println!("{nt}");
         let img = Arc::new(self.clone());
         let w = self.width;
         let y = self.height;
@@ -161,7 +160,6 @@ impl ByteImage{
         for i in 0..nt{
             let by = y/nt*i;
             let ey = if i != nt-1{y/nt*(i+1)+1} else{y};
-            println!("by:{by}, ey:{ey}"); 
             let img0 = img.clone();
             let ft = thread::spawn(move ||{blur_thread( img0, kernel_size, exp_divisor,0, by, w,ey)});
             results.push(ft);
@@ -177,6 +175,7 @@ impl ByteImage{
         return Self::new_from_color(&outbuffer, self.height, self.width);
        
     }
+
     pub fn blur_shader(&self, thread:&raylib::prelude::RaylibThread, handle:&mut raylib::prelude::RaylibHandle, kernel_size:usize, divisor:f64)->Result<Self, String>{
         static VS_CODE:&str = core::include_str!("shaders/blur.vs");
         static FS_CODE:&str = core::include_str!("shaders/blur.fs");
@@ -214,7 +213,35 @@ impl ByteImage{
         img.rotate(90);
         return Ok(Self::new(&mut img));
     }
-    pub fn guass_diff_shader_explicit(&self, thread:&raylib::prelude::RaylibThread, handle:&mut raylib::prelude::RaylibHandle, kernel_size0:usize, divisor0:f64, kernel_size1:usize, divisor1:f64, b_and_w:bool)->Result<Self, String>{
+
+    pub fn guass_diff(&self, kernel_size1:usize, exp_divisor1:f64, kernel_size2:usize, exp_divisor2:f64)->Self{
+        let mut img1 = self.blur(kernel_size1, exp_divisor1);
+        let img2 = self.blur(kernel_size2, exp_divisor2);
+        for y in 0..img1.height{
+            for x in 0..img1.width{
+                img1[y][x].r  = (img1[y][x].r as f64- img2[y][x].r as f64).abs() as u8;
+                img1[y][x].g  = (img1[y][x].g as f64- img2[y][x].g as f64).abs() as u8;
+                img1[y][x].b = (img1[y][x].b as f64- img2[y][x].b as f64).abs() as u8;
+            }
+        }
+        return img1;
+    }
+
+    pub fn guass_diff_single_threaded(&self, kernel_size1:usize, exp_divisor1:f64, kernel_size2:usize, exp_divisor2:f64)->Self{
+        let mut img1 = self.blur_single_threaded(kernel_size1, exp_divisor1);
+        let img2 = self.blur_single_threaded(kernel_size2, exp_divisor2);
+        for y in 0..img1.height{
+            for x in 0..img1.width{
+                img1[y][x].r  = (img1[y][x].r as f64- img2[y][x].r as f64).abs() as u8;
+                img1[y][x].g  = (img1[y][x].g as f64- img2[y][x].g as f64).abs() as u8;
+                img1[y][x].b = (img1[y][x].b as f64- img2[y][x].b as f64).abs() as u8;
+            }
+        }
+        return img1;
+    }
+
+
+    pub fn guass_diff_shader(&self, thread:&raylib::prelude::RaylibThread, handle:&mut raylib::prelude::RaylibHandle, kernel_size0:usize, divisor0:f64, kernel_size1:usize, divisor1:f64, b_and_w:bool)->Result<Self, String>{
         static VS_CODE:&str = core::include_str!("shaders/blur.vs");
         static FS_CODE:&str = core::include_str!("shaders/diff.fs");
         let img = self.to_image();
@@ -254,6 +281,44 @@ impl ByteImage{
         img.rotate(90);
         return Ok(Self::new(&mut img));
     }
+    pub fn cell_shader(&self, thread:&raylib::prelude::RaylibThread, handle:&mut raylib::prelude::RaylibHandle, kernel_size:usize, divisor:f64)->Result<Self, String>{
+        static VS_CODE:&str = core::include_str!("shaders/blur.vs");
+        static FS_CODE:&str = core::include_str!("shaders/cell.fs");
+        let img = self.to_image();
+        let tex = handle.load_texture_from_image(thread, &img)?;
+        let render_tex = handle.load_render_texture(thread, self.width as u32, self.height as u32)?;
+        
+        let mut shader = handle.load_shader_from_memory(thread, Some(VS_CODE), Some(FS_CODE)); 
+        shader.set_shader_value_v(shader.get_shader_location("height"), &[self.height as i32]);
+        shader.set_shader_value_v(shader.get_shader_location("width"), &[self.width as i32]);
+        shader.set_shader_value_v(shader.get_shader_location("kernel_size"), &[kernel_size as i32]);
+        shader.set_shader_value_v(shader.get_shader_location("divisor"), &[divisor as i32]);
+        {
+            unsafe{
+                use raylib::ffi::*;
+                BeginTextureMode(*render_tex);
+                BeginShaderMode(*shader);
+                rlSetTexture(tex.id);
+                rlBegin(raylib::ffi::RL_QUADS as i32);
+                rlColor4f(1.0, 1.0, 1.0, 1.0);
+                rlTexCoord2f(0.0, 0.0);
+                rlVertex2f(0.0, 0.0);
+                rlTexCoord2f(1.0, 0.0);
+                rlVertex2f(0.0, self.height as f32);
+                rlTexCoord2f(1.0, 1.0);
+                rlVertex2f(self.width as f32, self.height as f32);
+                rlTexCoord2f(0.0, 1.0);
+                rlVertex2f(self.width as f32,0.0);
+    
+                raylib::ffi::rlEnd();
+                EndTextureMode();
+            }
+        }
+        let mut img = render_tex.load_image()?;
+        img.rotate(90);
+        return Ok(Self::new(&mut img));
+    }
+
 }
 
 #[allow(unused)]

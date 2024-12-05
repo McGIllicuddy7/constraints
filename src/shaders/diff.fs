@@ -20,7 +20,7 @@ float weight(int x, int y, int divisor){
     float d = x*x+y*y;
     return exp(-d/float(divisor));
 }
-vec3 guassian(int kernel_size, int divisor){
+vec3 gaussian(int kernel_size, int divisor){
     vec3 texelColor = vec3(0.0);
     float total = 1.0;
     for(int y = -kernel_size; y<kernel_size; y++){
@@ -32,8 +32,18 @@ vec3 guassian(int kernel_size, int divisor){
         }
     }
     texelColor/= total;
+    float length = sqrt(texelColor.r*texelColor.r+texelColor.g*texelColor.g+texelColor.b*texelColor.b);
     if(b_and_w){
-        texelColor = vec3(sqrt(texelColor.r*texelColor.r+texelColor.g*texelColor.g+texelColor.b*texelColor.b));
+        if(length>0.5){
+            texelColor = vec3(sqrt(length));
+        } else{
+               texelColor = vec3(length*length);
+        }
+
+    } if(length>0.5){
+        texelColor /=length;
+    } else{
+        texelColor = vec3(0.0);
     }
     return texelColor;
 }
@@ -41,8 +51,8 @@ vec3 guassian(int kernel_size, int divisor){
 void main()
 {
     // Texel color fetching from texture sampler
-    vec3 base = guassian(kernel_size0, divisor0);
-    vec3 old = guassian(kernel_size1, divisor1);
+    vec3 base = gaussian(kernel_size0, divisor0);
+    vec3 old = gaussian(kernel_size1, divisor1);
     vec3 texelColor = abs(base-old);
     finalColor = vec4(texelColor, 1.0);
 }
