@@ -434,7 +434,3 @@ pub fn byte_image_comparision(a:&ByteImage, b:&ByteImage)->f64{
     b_blur.export("b_blur.png");
     byte_image_dot_product(&a_blur, &b_blur)
 }
-#[allow(unused)]
-pub fn byte_image_allowed_borders(a:&ByteImage, b:&ByteImage, thresh_hold:f64)->Vec<u8>{
-    todo!();
-}

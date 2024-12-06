@@ -56,9 +56,11 @@ pub struct GridConstraint{
     pub constraints_sat:Arc<dyn Fn(&Grid,TileType, usize, usize)->bool>,
     pub debug_fn:Arc<dyn Fn()->String>,
 }
+
 impl std::fmt::Debug for GridConstraint{
     fn fmt(&self, formatter:&mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> { let _ = formatter.write_str(&(self.debug_fn)()); Ok(())}
 }
+
 impl GridConstraint{
     pub fn new(func:Arc<dyn Fn(&Grid, TileType,usize, usize)->bool>,debug_fn:Arc<dyn Fn()->String>)->Self{
         Self{constraints_sat:func, debug_fn}
@@ -147,7 +149,13 @@ impl ConstraintSolver{
         true
     }
 
-    pub fn new_from_data(data:&[TileType], height:usize, width:usize)->Self{
+    pub fn new_from_borders( allowed_states:Arc<[TileType]>,allowed_border:HashMap<i32, Vec<HashSet<i32>>>, height:usize, width:usize)->Self{
+        let mut constraints:Vec<GridConstraint> = Vec::new();
+        constraints.push(GridConstraint::new_from_borders(allowed_border));
+        Self{grid:Grid::new(height, width), constraints, allowed_states:allowed_states.into(),allowed_neighbors_cache:HashMap::new()}
+    }
+
+    pub fn constraints_and_allowed_from_data(data:&[TileType], height:usize, width:usize)->(HashMap<i32, Vec<HashSet<i32>>>, Vec<TileType>){
         let mut used:HashSet<TileType> = HashSet::new();
         let mut allowed_states:Vec<TileType> = Vec::new();
         for i in data{
@@ -156,7 +164,6 @@ impl ConstraintSolver{
                 allowed_states.push(*i);
             }
         }
-        let mut constraints:Vec<GridConstraint> = Vec::new();
         let mut allowed_border = HashMap::new();
         for i in &allowed_states{
             let mut tmp_vec = Vec::new();
@@ -181,8 +188,11 @@ impl ConstraintSolver{
             }
             allowed_border.insert(*i,tmp_vec);
         }
-        constraints.push(GridConstraint::new_from_borders(allowed_border));
-        Self{grid:Grid::new(height, width), constraints, allowed_states:allowed_states.into(),allowed_neighbors_cache:HashMap::new()}
+        (allowed_border, allowed_states)
+    }
+    pub fn new_from_data(data:&[TileType], height:usize, width:usize)->Self{
+        let (allowed_border, allowed_states) = Self::constraints_and_allowed_from_data(data, height, width);
+        Self::new_from_borders(allowed_states.into(), allowed_border, height, width)
     }
 
     //sets the value at the location to the requested one, clears the cache of the value and all it's neighbors
@@ -380,6 +390,30 @@ impl ConstraintSolver{
     }
 }
 
+
+#[allow(unused)]
+pub fn save_constraints(constraints:HashMap<i32, Vec<HashSet<i32>>>)->Result<String, serde_json::Error>{
+    serde_json::to_string_pretty(&constraints)
+}
+
+#[allow(unused)]
+pub fn load_constraints(data:&str)-> Result<HashMap<i32, Vec<HashSet<i32>>>, serde_json::Error>{
+    serde_json::from_str(data)
+}
+
+#[allow(unused)]
+pub fn save_constraints_to_file(constraints:HashMap<i32, Vec<HashSet<i32>>>, file_name:&str)->Result<(), serde_json::Error>{
+    let str = save_constraints(constraints)?;
+    std::fs::write(file_name, &str);
+    Ok(())
+}
+
+#[allow(unused)]
+pub fn load_constraints_from_file(file_name:&str)->Result<HashMap<i32, Vec<HashSet<i32>>>, Box<dyn std::error::Error>>{
+    let str = std::fs::read_to_string("")?;
+    Ok(load_constraints(&str)?)
+}   
+
 #[test]
 fn test_offsets(){
     for i in 0..8{
@@ -412,8 +446,8 @@ fn test_initial_state_is_valid(){
 
 #[allow(unused)]
 pub fn test_collapse(){
-    let height:usize =60;
-    let width:usize = 60;
+    let height:usize =10;
+    let width:usize = 10;
     let mut data =Vec::new();
     for i in 0..height{
         for j in 0..width{
@@ -426,3 +460,4 @@ pub fn test_collapse(){
     eprintln!("{}", solve.grid.to_str());
 
 }
+

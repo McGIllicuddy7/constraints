@@ -53,7 +53,7 @@ fn diff(){
 
 fn main() {
     let now = SystemTime::now();
-    diff();
+    collapse_sim();
     match now.elapsed() {
         Ok(elapsed) => {
             // it prints '2'
