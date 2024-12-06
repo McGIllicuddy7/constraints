@@ -55,6 +55,7 @@ pub struct GridConstraint{
     //returns true if the state is valid, false if it's invalid
     pub constraints_sat:Arc<dyn Fn(&Grid,TileType, usize, usize)->bool>,
     pub debug_fn:Arc<dyn Fn()->String>,
+    pub serialize_fn:Arc<dyn Fn()->Result<String, Box<dyn std::error::Error>>>
 }
 
 impl std::fmt::Debug for GridConstraint{
@@ -62,13 +63,14 @@ impl std::fmt::Debug for GridConstraint{
 }
 
 impl GridConstraint{
-    pub fn new(func:Arc<dyn Fn(&Grid, TileType,usize, usize)->bool>,debug_fn:Arc<dyn Fn()->String>)->Self{
-        Self{constraints_sat:func, debug_fn}
+    pub fn new(func:Arc<dyn Fn(&Grid, TileType,usize, usize)->bool>,debug_fn:Arc<dyn Fn()->String>, serialize_fn:Arc<dyn Fn()->Result<String, Box<dyn std::error::Error>>>)->Self{
+        Self{constraints_sat:func, debug_fn, serialize_fn}
     }
 
     // tile types; directions within tile tiles; allowed types per direction
     pub fn new_from_borders(constraints:HashMap<TileType,Vec<HashSet<TileType>>>)->Self{
         let debug_constraints = constraints.clone();
+        let ser_constraints = constraints.clone();
         let func = move |grid:&Grid, tile_type:TileType, x:usize, y:usize|{
             for i in 0..8{
                 let (dx,dy) = OFFSETS[i];
@@ -97,7 +99,17 @@ impl GridConstraint{
         let debug_fn = move||{
             format!("{:#?}", debug_constraints)
         };
-        Self{constraints_sat:Arc::new(func), debug_fn:Arc::new(debug_fn)}
+        let serialize_fn= move||{
+            let tmp = serde_json::to_string_pretty(&ser_constraints);
+            if let Ok(t) = tmp{
+                Ok(t)
+            }  else{
+                let t = tmp.unwrap_err();
+                Err(Box::new(t) as Box<dyn std::error::Error>)
+            }
+       
+        };
+        Self{constraints_sat:Arc::new(func), debug_fn:Arc::new(debug_fn), serialize_fn:Arc::new(serialize_fn)}
     }
 
     //returns true if the state is valid, false if it's invalid
