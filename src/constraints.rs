@@ -1,5 +1,4 @@
 use std::{collections::{HashMap, HashSet}, sync::Arc};
-
 use rand::{thread_rng, RngCore};
 use crate::utils;
 use crate::utils::OFFSETS;
@@ -14,6 +13,7 @@ pub struct Grid{
 }
 
 impl Grid{
+
     pub fn new(height:usize, width:usize)->Self{
         let mut tmp: Vec<TileType> = Vec::new();
         tmp.reserve_exact(height*width);

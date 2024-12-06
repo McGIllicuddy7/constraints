@@ -109,7 +109,7 @@ impl ByteImage{
                 }
                 let vx = ix as usize;
                 let vy = iy as usize;
-                let scaler = (-((dx*dx+dy*dy) as f64)/exp_divisor).exp();
+                let scaler = fast_math::exp((-((dx*dx+dy*dy) as f64)/exp_divisor)as f32) as f64;
                 total_mlt += scaler;
                 let c = self[vy][vx];
                 col[0] += (c.r as f64)*scaler;
@@ -433,4 +433,8 @@ pub fn byte_image_comparision(a:&ByteImage, b:&ByteImage)->f64{
     a_blur.export("a_blur.png");
     b_blur.export("b_blur.png");
     byte_image_dot_product(&a_blur, &b_blur)
+}
+#[allow(unused)]
+pub fn byte_image_allowed_borders(a:&ByteImage, b:&ByteImage, thresh_hold:f64)->Vec<u8>{
+    todo!();
 }
