@@ -5,7 +5,7 @@ use rand::{thread_rng, RngCore};
 #[allow(unused)]
 pub const OFFSETS:[(isize,isize);8] = [(-1,-1), (0,-1), (1,-1), (-1,0), (1,0), (-1,1), (0,1),(1,1)];
 #[allow(unused)]
-pub const OFFSET_NAMES:[&'static str; 8] = ["top left", "top center", "top right", "middle left", "middle right", "bottom left", "bottom center", "bottom right"];
+pub const OFFSET_NAMES:[&str; 8] = ["top left", "top center", "top right", "middle left", "middle right", "bottom left", "bottom center", "bottom right"];
 pub const MINUS_INDICES:[usize; 8] = [7, 6, 5, 4, 3, 2,1,0];
 
 #[allow(unused)]
@@ -18,6 +18,6 @@ pub fn slice_rand_select<T:Clone>(values:&[(T, f64)])->T{
         base += values[idx].1;
         idx += 1;
     }
-    return values[idx].0.clone();
+    values[idx].0.clone()
 }
 

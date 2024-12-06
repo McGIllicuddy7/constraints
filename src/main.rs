@@ -47,10 +47,8 @@ fn diff_fast(){
 #[allow(unused)]
 fn diff(){
     let img = images::ByteImage::new_from_file("image.png").expect("i know you exist");
-    let edges = img.guass_diff(10,2.0, 20, 4.0);
-    edges.export("edges.png");
-    let blurred = edges.blur(10, 20.0);
-    blurred.export("blurred.png");
+    let img2 = img.shift_horizontal(1000);
+    println!("diff(img,img) ={}", images::byte_image_comparision(&img, &img2));
 }
 
 fn main() {

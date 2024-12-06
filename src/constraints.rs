@@ -23,17 +23,17 @@ impl Grid{
             }
         }
         let values:Box<[TileType]> = tmp.into();
-        return Self{values, height, width};
+        Self{values, height, width}
     }
 
     pub fn get_sq(&self,x:usize, y:usize)->&TileType{
         assert!(x<self.width&& y<self.height);
-        return &self.values[y*self.width+x];
+        &self.values[y*self.width+x]
     }
 
     pub fn get_sqmut(&mut self, x:usize, y:usize)->&mut TileType{
         assert!(x<self.width&& y<self.height);
-        return &mut self.values[y*self.width+x];
+        &mut self.values[y*self.width+x]
     }
     pub fn to_str(&self)->String{
         let mut out = String::new();
@@ -46,7 +46,7 @@ impl Grid{
             }
             out += "\n";
         }
-        return out;
+        out
     }
 }
 
@@ -61,7 +61,7 @@ impl std::fmt::Debug for GridConstraint{
 }
 impl GridConstraint{
     pub fn new(func:Arc<dyn Fn(&Grid, TileType,usize, usize)->bool>,debug_fn:Arc<dyn Fn()->String>)->Self{
-        return Self{constraints_sat:func, debug_fn}
+        Self{constraints_sat:func, debug_fn}
     }
 
     // tile types; directions within tile tiles; allowed types per direction
@@ -90,12 +90,12 @@ impl GridConstraint{
                     return false
                 }
             }
-            return true;
+            true
         };
         let debug_fn = move||{
             format!("{:#?}", debug_constraints)
         };
-        return Self{constraints_sat:Arc::new(func), debug_fn:Arc::new(debug_fn)};
+        Self{constraints_sat:Arc::new(func), debug_fn:Arc::new(debug_fn)}
     }
 
     //returns true if the state is valid, false if it's invalid
@@ -103,7 +103,7 @@ impl GridConstraint{
         if test_value == -1{
             return true;
         }
-        return (self.constraints_sat)(grid,test_value, x,y);
+        (self.constraints_sat)(grid,test_value, x,y)
     }
     pub fn get_allowed_states(&self,grid:&Grid,allowed_states:&[TileType],x:usize, y:usize)->Vec<TileType>{
         let mut out = vec![];
@@ -112,7 +112,7 @@ impl GridConstraint{
                 out.push(*i);
             }
         }
-        return out;
+        out
     }
 }
 
@@ -144,7 +144,7 @@ impl ConstraintSolver{
                 }
             }
         }
-        return true;
+        true
     }
 
     pub fn new_from_data(data:&[TileType], height:usize, width:usize)->Self{
@@ -182,7 +182,7 @@ impl ConstraintSolver{
             allowed_border.insert(*i,tmp_vec);
         }
         constraints.push(GridConstraint::new_from_borders(allowed_border));
-        return Self{grid:Grid::new(height, width), constraints, allowed_states:allowed_states.into(),allowed_neighbors_cache:HashMap::new()};
+        Self{grid:Grid::new(height, width), constraints, allowed_states:allowed_states.into(),allowed_neighbors_cache:HashMap::new()}
     }
 
     //sets the value at the location to the requested one, clears the cache of the value and all it's neighbors
@@ -217,11 +217,11 @@ impl ConstraintSolver{
                 if result{
                     return true;
                 }
-            } else if allowed.len() == 0{
+            } else if allowed.is_empty(){
                 return true;
             }
         } 
-        return false;
+        false
     }
     pub fn check_collapse_allowed(&self, x:usize, y:usize, test_value:TileType)->bool{
         for i in &self.constraints{
@@ -229,7 +229,7 @@ impl ConstraintSolver{
                 return false;
             }
         }
-        return true;
+        true
     }
 
     pub fn allowed_states_at(&mut self,x:usize, y:usize)->Vec<TileType>{
@@ -242,7 +242,7 @@ impl ConstraintSolver{
             out.append(&mut tmp);
         }
         self.allowed_neighbors_cache.insert((x,y), out.clone());
-        return out;
+        out
     }
 
     //returns true if it reached an unreachable state
@@ -257,7 +257,7 @@ impl ConstraintSolver{
                         continue;
                     }
                     let al = self.allowed_states_at(x, y);
-                    if al.len() == 0{
+                    if al.is_empty(){
                         self.grid = previous;
                         return true;
                     }
@@ -268,7 +268,7 @@ impl ConstraintSolver{
                 }
             }
         }
-        return false;
+        false
     }
 
     //returns Ok(true) if the collapse was allowed Ok(false) if collapsing reached an unreachable state returns an error
@@ -280,13 +280,11 @@ impl ConstraintSolver{
             };
             if result {
                 Err(())
-            } else{
-                if self.is_state_valid(){
-                    Ok(true)
-                }
-                else{
-                    Err(())
-                }
+            } else if self.is_state_valid(){
+                Ok(true)
+            }
+            else{
+                Err(())
             }
 
         } else{
@@ -322,7 +320,7 @@ impl ConstraintSolver{
         if result{
             return Err(());
         }
-        return Ok(true);
+        Ok(true)
     }
 
     pub fn contains_undefined(&self)->bool{
@@ -331,17 +329,17 @@ impl ConstraintSolver{
                 return true;
             }
         }
-        return false;
+        false
     }
 
     pub fn undefined_count(&self)->usize{
         let mut count = 0;
         for i in self.grid.values.as_ref(){
             if *i == -1{
-                count = count+1;
+                count += 1;
             }
         }
-        return count;
+        count
     }
 
     pub fn collapse_lowest_entropy(&mut self, selection_mode:&SelectionStrategy)->Result<bool, ()>{
@@ -354,12 +352,12 @@ impl ConstraintSolver{
             }
         }
         idxs.sort_unstable_by(|a,b|{
-            if a<b{return std::cmp::Ordering::Greater;} else{ return std::cmp::Ordering::Less}
+            if a<b{std::cmp::Ordering::Greater} else{ std::cmp::Ordering::Less}
             }
           );
         let x = idxs[0].0.0;
         let y = idxs[0].0.1;
-        return self.collapse_location(x, y, selection_mode);
+        self.collapse_location(x, y, selection_mode)
     }
 
     pub fn collapse_fully(&mut self, selection_mode:&SelectionStrategy)->bool{
@@ -370,17 +368,15 @@ impl ConstraintSolver{
             if r.is_err(){
                 return false;
             }
-            if r.is_ok(){
-                if !r.unwrap(){
-                    return false;
-                }
+            if r.is_ok() && !r.unwrap() {
+                return false;
             }
             ud_count = self.undefined_count();
         }
         /*if !self.is_state_valid(){
             return false;
         }*/
-        return true;
+        true
     }
 }
 

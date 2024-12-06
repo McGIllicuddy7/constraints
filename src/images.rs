@@ -17,13 +17,13 @@ pub struct ByteImage{
 impl Index<usize> for ByteImage{
     type Output = [Color];
     fn index(&self, index: usize) -> &Self::Output {
-        return &self.colors[index*self.width..(index+1)*self.width];
+        &self.colors[index*self.width..(index+1)*self.width]
     }
 }
 
 impl IndexMut<usize> for ByteImage{
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        return &mut self.colors[index*self.width..(index+1)*self.width];
+        &mut self.colors[index*self.width..(index+1)*self.width]
     }
 }
 
@@ -36,7 +36,7 @@ impl ByteImage{
                 vcolors.push(image.get_color(x, y));
             }
         }
-        return Self{colors:vcolors.into_boxed_slice(), height:image.height as usize, width:image.width as usize};
+        Self{colors:vcolors.into_boxed_slice(), height:image.height as usize, width:image.width as usize}
     }
     pub fn new_from_color(colors:&[Color], height:usize, width:usize)->Self{
         let mut vcolors = Vec::new();
@@ -46,12 +46,12 @@ impl ByteImage{
                 vcolors.push(colors[y*width+x]);
             }
         }
-        return Self{colors:vcolors.into_boxed_slice(), height, width};
+        Self{colors:vcolors.into_boxed_slice(), height, width}
     }
     
     pub fn new_from_file(path:&str)->Result<Self,String>{
         let mut img = Image::load_image(path)?;
-        return  Ok(Self::new(&mut img));
+        Ok(Self::new(&mut img))
     }
 
     pub fn to_image(&self)->Image{
@@ -61,23 +61,23 @@ impl ByteImage{
                 img.draw_pixel(x as i32, y as i32, self[y][x]);
             }
         }
-        return img;
+        img
     }
 
     pub fn get_height(&self)->usize{
-        return self.height;
+        self.height
     }
 
     pub fn get_width(&self)->usize{
-        return self.width;
+        self.width
     }
 
     pub fn get_data(&self)->&[Color]{
-        return &self.colors;
+        &self.colors
     }
 
     pub fn get_data_mut(&mut self)->&mut [Color]{
-        return &mut self.colors;
+        &mut self.colors
     }
 
     pub fn sub_image(&self, x_start:usize, y_start:usize, x_end:usize, y_end:usize)->Self{
@@ -85,10 +85,10 @@ impl ByteImage{
         out_buff.reserve_exact((x_end-x_start)*(y_end-y_start));
         for y in y_start..y_end{
             for x in x_end..x_end{
-                out_buff.push(self[y][x].clone());
+                out_buff.push(self[y][x]);
             }
         }
-        return Self { colors: out_buff.into_boxed_slice(), height: y_end-y_start, width: x_end-x_start };
+        Self { colors: out_buff.into_boxed_slice(), height: y_end-y_start, width: x_end-x_start }
     }
 
     pub fn export(&self, file_name:&str){
@@ -122,7 +122,7 @@ impl ByteImage{
         col[1] /= total_mlt;
         col[2] /= total_mlt;
         col[3] /= total_mlt;
-        return Color { r: col[0] as u8, g: col[1] as u8, b: col[2] as u8, a: col[3] as u8 };
+        Color { r: col[0] as u8, g: col[1] as u8, b: col[2] as u8, a: col[3] as u8 }
     }
 
     pub fn blur_single_threaded(&self, kernel_size:usize, exp_divisor:f64)->Self{
@@ -132,7 +132,7 @@ impl ByteImage{
                 out[y][x] = self.kernel_blur(x, y, kernel_size, exp_divisor);
             }
         }
-        return out;
+        out
     }
 
 
@@ -145,7 +145,7 @@ impl ByteImage{
                     out.push(img.kernel_blur(x, y, kernel_size, exp_divisor));
                 }
             }
-            return out;
+            out
         }
         let nt:usize = std::thread::available_parallelism().expect("should work?").into();
         if self.height<nt{
@@ -170,7 +170,7 @@ impl ByteImage{
                 outbuffer.push(j);
             }
         }
-        return Self::new_from_color(&outbuffer, self.height, self.width);
+        Self::new_from_color(&outbuffer, self.height, self.width)
        
     }
 
@@ -194,13 +194,13 @@ impl ByteImage{
                 rlSetTexture(tex.id);
                 rlBegin(raylib::ffi::RL_QUADS as i32);
                 rlColor4f(1.0, 1.0, 1.0, 1.0);
-                rlTexCoord2f(0.0, 0.0);
-                rlVertex2f(0.0, 0.0);
-                rlTexCoord2f(1.0, 0.0);
-                rlVertex2f(0.0, self.height as f32);
-                rlTexCoord2f(1.0, 1.0);
-                rlVertex2f(self.width as f32, self.height as f32);
                 rlTexCoord2f(0.0, 1.0);
+                rlVertex2f(0.0, 0.0);
+                rlTexCoord2f(0.0, 0.0);
+                rlVertex2f(0.0, self.height as f32);
+                rlTexCoord2f(1.0, 0.0);
+                rlVertex2f(self.width as f32, self.height as f32);
+                rlTexCoord2f(1.0, 1.0);
                 rlVertex2f(self.width as f32,0.0);
     
                 raylib::ffi::rlEnd();
@@ -208,8 +208,7 @@ impl ByteImage{
             }
         }
         let mut img = render_tex.load_image()?;
-        img.rotate(90);
-        return Ok(Self::new(&mut img));
+        Ok(Self::new(&mut img))
     }
 
     pub fn guass_diff(&self, kernel_size1:usize, exp_divisor1:f64, kernel_size2:usize, exp_divisor2:f64)->Self{
@@ -222,9 +221,9 @@ impl ByteImage{
                 img1[y][x].b = (img1[y][x].b as f64- img2[y][x].b as f64).abs() as u8;
             }
         }
-        return img1;
+        img1
     }
-
+    
     pub fn guass_diff_single_threaded(&self, kernel_size1:usize, exp_divisor1:f64, kernel_size2:usize, exp_divisor2:f64)->Self{
         let mut img1 = self.blur_single_threaded(kernel_size1, exp_divisor1);
         let img2 = self.blur_single_threaded(kernel_size2, exp_divisor2);
@@ -235,7 +234,7 @@ impl ByteImage{
                 img1[y][x].b = (img1[y][x].b as f64- img2[y][x].b as f64).abs() as u8;
             }
         }
-        return img1;
+        img1
     }
 
 
@@ -262,13 +261,13 @@ impl ByteImage{
                 rlSetTexture(tex.id);
                 rlBegin(raylib::ffi::RL_QUADS as i32);
                 rlColor4f(1.0, 1.0, 1.0, 1.0);
-                rlTexCoord2f(0.0, 0.0);
-                rlVertex2f(0.0, 0.0);
-                rlTexCoord2f(1.0, 0.0);
-                rlVertex2f(0.0, self.height as f32);
-                rlTexCoord2f(1.0, 1.0);
-                rlVertex2f(self.width as f32, self.height as f32);
                 rlTexCoord2f(0.0, 1.0);
+                rlVertex2f(0.0, 0.0);
+                rlTexCoord2f(0.0, 0.0);
+                rlVertex2f(0.0, self.height as f32);
+                rlTexCoord2f(1.0, 0.0);
+                rlVertex2f(self.width as f32, self.height as f32);
+                rlTexCoord2f(1.0, 1.0);
                 rlVertex2f(self.width as f32,0.0);
     
                 raylib::ffi::rlEnd();
@@ -276,8 +275,7 @@ impl ByteImage{
             }
         }
         let mut img = render_tex.load_image()?;
-        img.rotate(90);
-        return Ok(Self::new(&mut img));
+        Ok(Self::new(&mut img))
     }
     pub fn cell_shader(&self, thread:&raylib::prelude::RaylibThread, handle:&mut raylib::prelude::RaylibHandle, kernel_size:usize, divisor:f64)->Result<Self, String>{
         static VS_CODE:&str = core::include_str!("shaders/blur.vs");
@@ -299,13 +297,13 @@ impl ByteImage{
                 rlSetTexture(tex.id);
                 rlBegin(raylib::ffi::RL_QUADS as i32);
                 rlColor4f(1.0, 1.0, 1.0, 1.0);
-                rlTexCoord2f(0.0, 0.0);
-                rlVertex2f(0.0, 0.0);
-                rlTexCoord2f(1.0, 0.0);
-                rlVertex2f(0.0, self.height as f32);
-                rlTexCoord2f(1.0, 1.0);
-                rlVertex2f(self.width as f32, self.height as f32);
                 rlTexCoord2f(0.0, 1.0);
+                rlVertex2f(0.0, 0.0);
+                rlTexCoord2f(0.0, 0.0);
+                rlVertex2f(0.0, self.height as f32);
+                rlTexCoord2f(1.0, 0.0);
+                rlVertex2f(self.width as f32, self.height as f32);
+                rlTexCoord2f(1.0, 1.0);
                 rlVertex2f(self.width as f32,0.0);
     
                 raylib::ffi::rlEnd();
@@ -313,8 +311,7 @@ impl ByteImage{
             }
         }
         let mut img = render_tex.load_image()?;
-        img.rotate(90);
-        return Ok(Self::new(&mut img));
+        Ok(Self::new(&mut img))
     }
 
     pub fn does_it_rotate(&self)->Self{
@@ -324,22 +321,103 @@ impl ByteImage{
                 out[y][x] = self[y][x];
             }
         }
-        return out;
+        out
+    }
+    pub fn length(&self)->f64{
+        let mut out = 0.0;
+        for y in 0..self.height{
+            for x in 0..self.width{
+                out += self[y][x].r as f64;
+                out += self[y][x].g as f64;
+                out += self[y][x].b as f64;
+            }
+        }
+        out
+    }
+
+    #[allow(unused)]
+    pub fn shift_horizontal(&self, shift:isize)->Self{
+        let shift = shift %(self.width as isize);
+        let mut bytes = Vec::new();
+        bytes.reserve(self.height*self.width);
+        for _ in 0..self.height*self.width{
+            bytes.push(Color::BLACK);
+        }
+        for y in 0..self.height{
+            for x in 0..self.width{
+                let xdelt = {
+                    let t = x as isize + shift;
+                    if t<0{
+                        (self.width as isize-1 +t ) as usize
+                    } else if t>=self.width as isize{
+                        t as usize-self.width
+                    }
+                    else{
+                        t as usize
+                    }
+                };
+                bytes[y*self.width+xdelt] = self[y][x];
+            }
+        }
+        Self::new_from_color(&bytes, self.height, self.width)
+    }
+    #[allow(unused)]
+    pub fn shift_vertical(&self, shift:isize)->Self{
+        let shift = shift %(self.height as isize);
+        let mut bytes = Vec::new();
+        bytes.reserve(self.height*self.width);
+        for _ in 0..self.height*self.width{
+            bytes.push(Color::BLACK);
+        }
+        for y in 0..self.height{
+            for x in 0..self.width{
+                let ydelt = {
+                    let t = y as isize + shift;
+                    if t<0{
+                        (self.height as isize -1+t ) as usize
+                    } else if t>=self.height as isize{
+                        t as usize-self.height
+                    }
+                    else{
+                        t as usize
+                    }
+                };
+                bytes[ydelt*self.width+x] = self[y][x];
+            }
+        }
+        Self::new_from_color(&bytes, self.height, self.width)
     }
 }
 
-//this function is useless don't use it unless you feel like using a useless function.
+#[allow(unused)]
+pub fn byte_image_dot_product_no_normalization(a:&ByteImage, b:&ByteImage)->f64{
+    let mut out = 0.0;
+    let al = 1.0;
+    let bl = 1.0;
+    println!("al:{},bl:{}", al,bl);
+    for y in 0..a.height{
+        for x in 0..a.width{
+            out += (a[y][x].r as f64/al)*(b[y][x].r as f64)/bl;
+            out += (a[y][x].g as f64)/al*(b[y][x].g as f64)/bl;
+            out += (a[y][x].b as f64)/al*(b[y][x].b as f64)/bl;
+        }
+    }
+    out 
+}
 #[allow(unused)]
 pub fn byte_image_dot_product(a:&ByteImage, b:&ByteImage)->f64{
     let mut out = 0.0;
+    let al = byte_image_dot_product_no_normalization(&a, &a).sqrt();
+    let bl = byte_image_dot_product_no_normalization(&b, &b).sqrt();
+    println!("al:{},bl:{}", al,bl);
     for y in 0..a.height{
         for x in 0..a.width{
-            out += (a[y][x].r as f64)*(b[y][x].r as f64)/(256.0*256.0);
-            out += (a[y][x].g as f64)*(b[y][x].g as f64)/(256.0*256.0);
-            out += (a[y][x].b as f64)*(b[y][x].b as f64)/(256.0*256.0);
+            out += (a[y][x].r as f64/al)*(b[y][x].r as f64)/bl;
+            out += (a[y][x].g as f64)/al*(b[y][x].g as f64)/bl;
+            out += (a[y][x].b as f64)/al*(b[y][x].b as f64)/bl;
         }
     }
-    return out/(3.0*a.height as f64*b.height as f64);
+    out
 }
 
 #[allow(unused)]
@@ -352,5 +430,7 @@ pub fn byte_image_comparision(a:&ByteImage, b:&ByteImage)->f64{
     let b_edges = b.guass_diff( kernel_size1, exp_divisor1, kernel_size2, exp_divisor2);
     let a_blur = a_edges.blur(10, 40.0);
     let b_blur = b_edges.blur(10, 40.0); 
-    return byte_image_dot_product(&a_blur, &b_blur);
+    a_blur.export("a_blur.png");
+    b_blur.export("b_blur.png");
+    byte_image_dot_product(&a_blur, &b_blur)
 }
