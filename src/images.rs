@@ -38,12 +38,23 @@ impl ByteImage{
         }
         Self{colors:vcolors.into_boxed_slice(), height:image.height as usize, width:image.width as usize}
     }
-    pub fn new_from_color(colors:&[Color], height:usize, width:usize)->Self{
+    pub fn new_from_colors(colors:&[Color], height:usize, width:usize)->Self{
         let mut vcolors = Vec::new();
         vcolors.reserve_exact(height*width);
         for y in 0..height{
             for x in 0..width{
                 vcolors.push(colors[y*width+x]);
+            }
+        }
+        Self{colors:vcolors.into_boxed_slice(), height, width}
+    }
+
+    pub fn new_from_color(color:Color, height:usize, width:usize)->Self{
+        let mut vcolors = Vec::new();
+        vcolors.reserve_exact(height*width);
+        for _ in 0..height{
+            for _ in 0..width{
+                vcolors.push(color);
             }
         }
         Self{colors:vcolors.into_boxed_slice(), height, width}
@@ -91,6 +102,18 @@ impl ByteImage{
         Self { colors: out_buff.into_boxed_slice(), height: y_end-y_start, width: x_end-x_start }
     }
 
+    pub fn draw_byte_image_to(&mut self, other:&Self, x_start:isize, y_start:isize){
+        let iheight = self.height as isize;
+        let iwidth = self.width as isize;
+        for y in y_start..y_start+other.height as isize{
+            for x in x_start..x_start+other.width as isize{
+                if x>= 0 && y>= 0 && y<iheight && x<iwidth{
+                    self[y as usize][x as usize] = other[(y-y_start)as usize][(x-x_start)as usize];
+                }
+            }
+        }
+
+    }
     pub fn export(&self, file_name:&str){
         let img = self.to_image();
         img.export_image(file_name);
@@ -170,7 +193,7 @@ impl ByteImage{
                 outbuffer.push(j);
             }
         }
-        Self::new_from_color(&outbuffer, self.height, self.width)
+        Self::new_from_colors(&outbuffer, self.height, self.width)
        
     }
 
@@ -359,7 +382,7 @@ impl ByteImage{
                 bytes[y*self.width+xdelt] = self[y][x];
             }
         }
-        Self::new_from_color(&bytes, self.height, self.width)
+        Self::new_from_colors(&bytes, self.height, self.width)
     }
     #[allow(unused)]
     pub fn shift_vertical(&self, shift:isize)->Self{
@@ -385,7 +408,7 @@ impl ByteImage{
                 bytes[ydelt*self.width+x] = self[y][x];
             }
         }
-        Self::new_from_color(&bytes, self.height, self.width)
+        Self::new_from_colors(&bytes, self.height, self.width)
     }
 }
 

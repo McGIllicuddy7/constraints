@@ -1,6 +1,7 @@
 pub mod constraints;
 mod utils;
 pub mod images;
+pub mod tile_set;
 #[allow(unused)]
 use std::{thread::sleep, time::{Duration, SystemTime}};
 #[allow(unused)]

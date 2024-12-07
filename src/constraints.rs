@@ -1,10 +1,10 @@
 use std::{collections::{HashMap, HashSet}, sync::Arc};
 use rand::{thread_rng, RngCore};
-use crate::utils;
+use crate::{images::ByteImage, utils};
 use crate::utils::OFFSETS;
 use crate::utils::MINUS_INDICES;
-type TileType = i32;
-
+pub use crate::tile_set::TileType;
+pub use crate::tile_set::TileSet;
 #[derive(Clone, Debug)]
 pub struct Grid{
     values:Box<[TileType]>, 
@@ -13,7 +13,6 @@ pub struct Grid{
 }
 
 impl Grid{
-
     pub fn new(height:usize, width:usize)->Self{
         let mut tmp: Vec<TileType> = Vec::new();
         tmp.reserve_exact(height*width);
@@ -47,6 +46,23 @@ impl Grid{
             out += "\n";
         }
         out
+    }
+
+    pub fn draw_as_byte_image(&self,tileset:&TileSet)->ByteImage{
+        let mut out = ByteImage::new_from_color(raylib::color::Color::BLACK, self.height * tileset.tile_size, self.width*tileset.tile_size);
+        for y in 0..self.height{
+            for x in 0..self.width{
+                out.draw_byte_image_to(&tileset.tiles[self.get_sq(x, y)],(x*tileset.tile_size) as isize,(y*tileset.tile_size) as isize);
+            }
+        }
+        out
+    }   
+
+    //this is slow, I can't figure out how to make it much faster uh, skill issue on my part. 
+    pub fn draw_as_texture(&self, tileset:&TileSet, thread:&mut raylib::RaylibThread, handle:&mut raylib::RaylibHandle)->Result<raylib::prelude::Texture2D, String>{
+        let tmp = self.draw_as_byte_image(tileset);
+        let out = handle.load_texture_from_image(thread,&tmp.to_image())?;
+        Ok(out)
     }
 }
 
@@ -201,6 +217,15 @@ impl ConstraintSolver{
             allowed_border.insert(*i,tmp_vec);
         }
         (allowed_border, allowed_states)
+    }
+
+    pub fn serialize_constraints(&self)->Result<String, Box<dyn std::error::Error>>{
+        (self.constraints[0].serialize_fn)()
+    }
+
+    pub fn write_constraints_to_file(&self, file_name:&str)->Result<(), Box<dyn std::error::Error>>{
+        std::fs::write(file_name,(self.constraints[0].serialize_fn)()?)?;
+        Ok(())
     }
     pub fn new_from_data(data:&[TileType], height:usize, width:usize)->Self{
         let (allowed_border, allowed_states) = Self::constraints_and_allowed_from_data(data, height, width);
@@ -395,9 +420,9 @@ impl ConstraintSolver{
             }
             ud_count = self.undefined_count();
         }
-        /*if !self.is_state_valid(){
+        if !self.is_state_valid(){
             return false;
-        }*/
+        }
         true
     }
 }
@@ -458,18 +483,18 @@ fn test_initial_state_is_valid(){
 
 #[allow(unused)]
 pub fn test_collapse(){
-    let height:usize =10;
-    let width:usize = 10;
+    let height:usize =100;
+    let width:usize = 100;
     let mut data =Vec::new();
     for i in 0..height{
         for j in 0..width{
-            data.push( ((thread_rng().next_u32())%3) as TileType);
+            data.push( ((i+j)%3) as TileType);
         }
     }
     let mut solve=
      ConstraintSolver::new_from_data(&data, height, width);
+     solve.write_constraints_to_file("constraints.json");
     assert!(solve.collapse_fully(&SelectionStrategy::PurelyRandom));
     eprintln!("{}", solve.grid.to_str());
-
 }
 
