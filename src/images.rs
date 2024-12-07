@@ -3,27 +3,82 @@ pub use raylib::prelude::Color;
 pub use raylib::prelude::Image;
 use raylib::shaders::RaylibShader;
 use raylib::texture::RaylibTexture2D;
+use serde_derive::Serialize;
 use std::ops::Index;
 use std::ops::IndexMut;
 use std::sync::Arc;
 use std::thread;
-#[derive(Clone)]
+#[repr(C)]
+#[derive(Serialize, Clone, Copy)]
+struct InternalColor{
+    r:u8, 
+    g:u8, 
+    b:u8, 
+    a:u8,
+}
+impl InternalColor{
+    fn from(c:&Color)->Self{
+        Self { r:c.r, g: c.g, b: c.b, a: c.a }
+    }
+}
+
+#[allow(unused)]
+fn convert_inc_to_color_slice<'a>(cols:&'a[InternalColor])->&'a[Color]{
+    let ptr = cols.as_ptr()as *const Color;
+    let length = cols.len();
+    //safety: this is not type punning, these have the same internal representation and size, this is allowed. these are the same type essentially. 
+    unsafe{
+        std::slice::from_raw_parts(ptr, length)
+    }
+}
+
+#[allow(unused)]
+fn convert_color_to_inc_slice<'a>(cols:&'a[Color])->&'a[InternalColor]{
+    let ptr = cols.as_ptr()as *const InternalColor;
+    let length = cols.len();
+    //safety: this is not type punning, these have the same internal representation and size, this is allowed. these are the same type essentially. 
+    unsafe{
+        std::slice::from_raw_parts(ptr, length)
+    }
+}
+
+#[allow(unused)]
+fn convert_inc_to_color_slice_mut<'a>(cols:&'a mut [InternalColor])->&'a mut [Color]{
+    let ptr = cols.as_ptr()as *mut Color;
+    let length = cols.len();
+    //safety: this is not type punning, these have the same internal representation and size, this is allowed. these are the same type essentially. Already have exclusive access to the slice
+    unsafe{
+        std::slice::from_raw_parts_mut(ptr, length)
+    }
+}
+#[allow(unused)]
+fn convert_color_to_inc_slice_mut<'a>(cols:&'a mut [Color])->&'a mut [InternalColor]{
+    let ptr = cols.as_ptr()as *mut InternalColor;
+    let length = cols.len();
+    //safety: this is not type punning, these have the same internal representation and size, this is allowed. these are the same type essentially. Already have exclusive access to the slice
+    unsafe{
+        std::slice::from_raw_parts_mut(ptr, length)
+    }
+}
+
+#[derive(Clone, Serialize)]
 pub struct ByteImage{
-    colors:Box<[Color]>,
+    colors:Box<[InternalColor]>,
     height: usize, 
     width:usize
 }
 
+
 impl Index<usize> for ByteImage{
     type Output = [Color];
     fn index(&self, index: usize) -> &Self::Output {
-        &self.colors[index*self.width..(index+1)*self.width]
+           convert_inc_to_color_slice(&self.colors[index*self.width..(index+1)*self.width])
     }
 }
 
 impl IndexMut<usize> for ByteImage{
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        &mut self.colors[index*self.width..(index+1)*self.width]
+        convert_inc_to_color_slice_mut(&mut self.colors[index*self.width..(index+1)*self.width])
     }
 }
 
@@ -33,9 +88,10 @@ impl ByteImage{
         vcolors.reserve(image.height as usize *image.width as usize);
         for y in 0..image.height{
             for x in 0..image.width{
-                vcolors.push(image.get_color(x, y));
+                vcolors.push(InternalColor::from(&image.get_color(x, y)));
             }
         }
+
         Self{colors:vcolors.into_boxed_slice(), height:image.height as usize, width:image.width as usize}
     }
     pub fn new_from_colors(colors:&[Color], height:usize, width:usize)->Self{
@@ -43,7 +99,7 @@ impl ByteImage{
         vcolors.reserve_exact(height*width);
         for y in 0..height{
             for x in 0..width{
-                vcolors.push(colors[y*width+x]);
+                vcolors.push(InternalColor::from(&colors[y*width+x]));
             }
         }
         Self{colors:vcolors.into_boxed_slice(), height, width}
@@ -54,7 +110,7 @@ impl ByteImage{
         vcolors.reserve_exact(height*width);
         for _ in 0..height{
             for _ in 0..width{
-                vcolors.push(color);
+                vcolors.push(InternalColor::from(&color));
             }
         }
         Self{colors:vcolors.into_boxed_slice(), height, width}
@@ -84,11 +140,11 @@ impl ByteImage{
     }
 
     pub fn get_data(&self)->&[Color]{
-        &self.colors
+        convert_inc_to_color_slice(&self.colors)
     }
 
     pub fn get_data_mut(&mut self)->&mut [Color]{
-        &mut self.colors
+        convert_inc_to_color_slice_mut(&mut self.colors)
     }
 
     pub fn sub_image(&self, x_start:usize, y_start:usize, x_end:usize, y_end:usize)->Self{
@@ -96,7 +152,7 @@ impl ByteImage{
         out_buff.reserve_exact((x_end-x_start)*(y_end-y_start));
         for y in y_start..y_end{
             for x in x_end..x_end{
-                out_buff.push(self[y][x]);
+                out_buff.push(InternalColor::from(&self[y][x]));
             }
         }
         Self { colors: out_buff.into_boxed_slice(), height: y_end-y_start, width: x_end-x_start }
