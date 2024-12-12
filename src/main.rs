@@ -4,6 +4,7 @@ pub mod images;
 pub mod tile_set;
 #[allow(unused)]
 use std::{thread::sleep, time::{Duration, SystemTime}};
+use constraints::test_city;
 #[allow(unused)]
 use raylib::{color::Color, prelude::RaylibDraw, RaylibHandle, RaylibThread};
 #[allow(unused)]
@@ -54,7 +55,7 @@ fn diff(){
 
 fn main() {
     let now = SystemTime::now();
-    diff();
+    test_city();
     match now.elapsed() {
         Ok(elapsed) => {
             // it prints '2'

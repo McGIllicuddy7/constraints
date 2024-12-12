@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, HashSet}, sync::Arc};
 use rand::{thread_rng, RngCore};
-use crate::{images::ByteImage, utils};
+use crate::{images::ByteImage, tile_set, utils};
 use crate::utils::OFFSETS;
 use crate::utils::MINUS_INDICES;
 pub use crate::tile_set::TileType;
@@ -63,6 +63,11 @@ impl Grid{
         let tmp = self.draw_as_byte_image(tileset);
         let out = handle.load_texture_from_image(thread,&tmp.to_image())?;
         Ok(out)
+    }
+    pub fn reset(&mut self){
+        for i in &mut self.values{
+            *i = -1;
+        }
     }
 }
 
@@ -496,5 +501,26 @@ pub fn test_collapse(){
      solve.write_constraints_to_file("constraints.json");
     assert!(solve.collapse_fully(&SelectionStrategy::PurelyRandom));
     eprintln!("{}", solve.grid.to_str());
+}
+
+#[allow(unused)]
+pub fn test_city(){
+    let height:usize =50;
+    let width:usize = 50;
+    let (tiles, allowed_border) = tile_set::make_city_tile_set();
+    let mut allowed_states = Vec::new();
+    for i in 0..tiles.tiles.len() as i32{
+        println!("{i}");
+        allowed_states.push(i);
+    }
+    let mut solve=
+     ConstraintSolver::new_from_borders(allowed_states.into(),allowed_border, height, width);
+    solve.write_constraints_to_file("constraints.json");
+    while !solve.collapse_fully(&SelectionStrategy::PurelyRandom){
+        solve.grid.reset();
+    }
+    eprintln!("{}", solve.grid.to_str()); 
+    solve.grid.draw_as_byte_image(&tiles).export("city.png");
+
 }
 
