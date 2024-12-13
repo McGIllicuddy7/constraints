@@ -1,4 +1,5 @@
 
+use raylib::prelude::Rectangle;
 pub use raylib::prelude::Color;
 pub use raylib::prelude::Image;
 use raylib::shaders::RaylibShader;
@@ -168,8 +169,8 @@ impl ByteImage{
                 }
             }
         }
-
     }
+
     pub fn export(&self, file_name:&str){
         let img = self.to_image();
         img.export_image(file_name);
@@ -465,6 +466,14 @@ impl ByteImage{
             }
         }
         Self::new_from_colors(&bytes, self.height, self.width)
+    }
+    
+    pub fn draw_rectangle(&mut self, rectangle:&Rectangle, color:&Color){
+        for y in rectangle.y as usize..(rectangle.y+rectangle.height) as usize{
+            for x in rectangle.x as usize..(rectangle.x+rectangle.width) as usize{
+                self[y][x] = *color;
+            } 
+        }
     }
 }
 
